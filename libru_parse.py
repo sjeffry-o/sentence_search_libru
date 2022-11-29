@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from razdel import sentenize
+import pickle
 
 start_url = 'http://www.lib.ru/INPROZ/'
 html_doc = requests.get(start_url)
@@ -21,16 +22,23 @@ for link in author_links[1:-1]:
             except:
                 print('error:', book_link)
                 continue
-            if 'txt' in book_link['href'] and 'Contents' not in book_link['href']:
-                text_url = start_url+link['href']+book_link['href']
-                text_html = requests.get(text_url)
-                print('book link:', start_url+link['href']+book_link['href'])
-                text_soup = BeautifulSoup(text_html.content, 'html.parser')
-                text_parts = text_soup.find_all('pre')
-                text = text_parts[0].contents[1].text
-                sentences = list(sentenize(text))
-                for sentence in sentences[:10]:
-                    print('\n\n', sentence.text)
-                    sent_for_search_prepared = sentence.text.replace(',', '%2C').replace(' ', '%20').replace('\n', '%0A').replace('-', '%2D')
-                    sent_highlight_url = text_url + '#:~:text=' + sent_for_search_prepared
-                    print('url:', sent_highlight_url, '\n\n')
+            try:
+                if 'txt' in book_link['href'] and 'Contents' not in book_link['href']:
+                    book_payload = []
+                    text_url = start_url+link['href']+book_link['href']
+                    text_html = requests.get(text_url)
+                    print('book link:', start_url+link['href']+book_link['href'])
+                    text_soup = BeautifulSoup(text_html.content, 'html.parser')
+                    text_parts = text_soup.find_all('pre')
+                    text = text_parts[0].contents[1].text
+                    sentences = list(sentenize(text))
+                    for sentence in sentences:
+                        print('\n\n', sentence.text)
+                        sent_for_search_prepared = sentence.text.replace(',', '%2C').replace(' ', '%20').replace('\n', '%0A').replace('-', '%2D')
+                        sent_highlight_url = text_url + '#:~:text=' + sent_for_search_prepared
+                        print('url:', sent_highlight_url, '\n\n')
+                        book_payload.append((sentence.text, sent_highlight_url))
+                    with open(f'data/{book_link["href"][:-4]}_data.pkl', 'wb') as f:
+                        pickle.dump(book_payload, f)
+            except:
+                pass
