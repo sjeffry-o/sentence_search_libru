@@ -1,0 +1,36 @@
+import requests
+from bs4 import BeautifulSoup
+from razdel import sentenize
+
+start_url = 'http://www.lib.ru/INPROZ/'
+html_doc = requests.get(start_url)
+soup = BeautifulSoup(html_doc.content, 'html.parser')
+
+author_links = soup.find_all('a')
+for link in author_links[1:-1]:
+    if '.' not in link['href'] and link['href'].count('/') == 1:
+        print(link['href'])
+
+        author_html = requests.get(start_url+link['href'])
+        book_soup = BeautifulSoup(author_html.content, 'html.parser')
+        book_links = book_soup.find_all('a')
+        for book_link in book_links:
+            try:
+                if 'txt' in book_link['href'] and 'Contents' not in book_link['href']:
+                    print('inter url:', book_link['href'])
+            except:
+                print('error:', book_link)
+                continue
+            if 'txt' in book_link['href'] and 'Contents' not in book_link['href']:
+                text_url = start_url+link['href']+book_link['href']
+                text_html = requests.get(text_url)
+                print('book link:', start_url+link['href']+book_link['href'])
+                text_soup = BeautifulSoup(text_html.content, 'html.parser')
+                text_parts = text_soup.find_all('pre')
+                text = text_parts[0].contents[1].text
+                sentences = list(sentenize(text))
+                for sentence in sentences[:10]:
+                    print('\n\n', sentence.text)
+                    sent_for_search_prepared = sentence.text.replace(',', '%2C').replace(' ', '%20').replace('\n', '%0A').replace('-', '%2D')
+                    sent_highlight_url = text_url + '#:~:text=' + sent_for_search_prepared
+                    print('url:', sent_highlight_url, '\n\n')
