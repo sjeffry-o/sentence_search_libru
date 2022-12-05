@@ -3,10 +3,10 @@ import pickle
 from glob import glob
 from torch import cat
 
-index_name = b'libru_vanilla'
+index_name = b'libru_vanilla_ruclip'
 emb_data_files = sorted(glob('data_emb/*'))
 # create an index framwork in filesystem.
-ngtpy.create(path=index_name, dimension=1024, distance_type="L2")
+ngtpy.create(path=index_name, dimension=512, distance_type="L2")
 
 for emb_file in emb_data_files:
     objects = []

@@ -19,7 +19,11 @@ model = AutoModel.from_pretrained("sberbank-ai/sbert_large_mt_nlu_ru").to(device
 
 data_files = glob('data/*')
 for book_pkl_filename in data_files:
-    inertial_mean_emb = torch.Tensor([0]*1024)
+    embeds_path = book_pkl_filename.replace('data', 'data_emb')
+    with open(embeds_path, 'rb') as f:
+        data_emb = pickle.load(f)
+    embs_existing = [case[2] for case in data_emb]
+    mean_book_emb = torch.mean(torch.stack(embs_existing))
     with open(book_pkl_filename, 'rb') as f:
         data = pickle.load(f)
     embs = []
@@ -32,9 +36,8 @@ for book_pkl_filename in data_files:
         with torch.no_grad():
             model_output = model(**encoded_input)
         #Perform pooling. In this case, mean pooling
-        sentence_embeddings = (mean_pooling(model_output, encoded_input['attention_mask']).to('cpu') + inertial_mean_emb) / 2
-        inertial_mean_emb = sentence_embeddings
+        sentence_embeddings = (mean_pooling(model_output, encoded_input['attention_mask']).to('cpu') + mean_book_emb) / 2
         embs.append(sentence_embeddings)
     book_payload = zip(sent_texts, sent_links, embs)
-    with open(book_pkl_filename.replace('data', 'data_emb_inert'), 'wb') as f:
+    with open(book_pkl_filename.replace('data', 'data_emb_full_context'), 'wb') as f:
         pickle.dump(book_payload, f)
